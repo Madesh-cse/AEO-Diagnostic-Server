@@ -9,10 +9,7 @@ export const askAI = async (query: string) => {
     if (!apiKey) {
       throw new Error("GROQ_API_KEY is missing in .env");
     }
-
     console.log("✅ Groq Key Loaded");
-
-    // Initialize Groq INSIDE function
     const groq = new Groq({
       apiKey,
     });
