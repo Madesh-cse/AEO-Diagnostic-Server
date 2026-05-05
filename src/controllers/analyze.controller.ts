@@ -13,26 +13,66 @@ export const analyzeQuery = async (req: Request, res: Response) => {
       });
     }
 
-    // AI call
+    const normalizedQuery = query.toLowerCase().trim();
+
+    // ⚡ 1. CHECK CACHE FIRST
+    const cachedResult = await Analysis.findOne({
+      query: normalizedQuery,
+    });
+
+    if (cachedResult) {
+      return res.status(200).json({
+        success: true,
+        cached: true,
+        data: cachedResult.aiResponse,
+        id: cachedResult._id,
+      });
+    }
+
+    // 🤖 2. CALL AI
     const aiResponse = await askAI(query);
 
-    // Save to DB
+    // 🧠 3. ENRICH PRODUCTS (risk layer)
+    const enrichedProducts = (aiResponse.products || []).map(
+      (p: any) => {
+        let risk = "Low";
+
+        if (p.sentiment === "Negative") risk = "High";
+        else if (p.sentiment === "Neutral") risk = "Medium";
+
+        return {
+          name: p.name,
+          rank: p.rank,
+          sentiment: p.sentiment,
+          reason: p.reason,
+          link: p.link || "",
+          risk,
+        };
+      }
+    );
+
+    // 📦 4. SAVE TO DB
     const savedData = await Analysis.create({
-      query,
-      aiResponse,
+      query: normalizedQuery,
+      aiResponse: {
+        ...aiResponse,
+        products: enrichedProducts,
+      },
       visibilityScore: aiResponse.visibilityScore,
       keywords: aiResponse.keywords,
-      products: aiResponse.products,
+      products: enrichedProducts,
       meta: {
         provider: "groq",
         model: "llama-3.1-8b-instant",
       },
+      cached: false,
     });
 
-    // CLEAN RESPONSE FORMAT (IMPORTANT)
+    // 🚀 5. RESPONSE
     return res.status(200).json({
       success: true,
-      data: aiResponse,
+      cached: false,
+      data: savedData.aiResponse,
       id: savedData._id,
     });
   } catch (error) {
