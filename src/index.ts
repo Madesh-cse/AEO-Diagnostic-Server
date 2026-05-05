@@ -1,8 +1,6 @@
 import { config } from "dotenv";
 config();
 
-console.log("KEY:", process.env.GROQ_API_KEY);
-
 import dns from "dns";
 import app from "./app.js";
 import { connectDB } from "./db/connection.js";
