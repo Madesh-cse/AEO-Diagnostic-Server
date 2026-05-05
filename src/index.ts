@@ -4,8 +4,8 @@ config();
 console.log("KEY:", process.env.GROQ_API_KEY);
 
 import dns from "dns";
-import app from "./app";
-import { connectDB } from "./db/connection";
+import app from "./app.js";
+import { connectDB } from "./db/connection.js";
 
 
 

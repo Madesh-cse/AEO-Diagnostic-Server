@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { askAI } from "../services/gemini.service";
-import Analysis from "../models/analysis.model";
+import { askAI } from "../services/gemini.service.js";
+import Analysis from "../models/analysis.model.js";
 
 export const analyzeQuery = async (req: Request, res: Response) => {
   try {

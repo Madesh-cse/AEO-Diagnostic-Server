@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { analyzeQuery } from "../controllers/analyze.controller";
+import { analyzeQuery } from "../controllers/analyze.controller.js";
 
 const AnalyzeRouter = Router();
 
