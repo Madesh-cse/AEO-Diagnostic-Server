@@ -9,7 +9,7 @@ import { connectDB } from "./db/connection.js";
 
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8000;
 
 const startServer = async () => {
   try {
