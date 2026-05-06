@@ -2,94 +2,97 @@ import Groq from "groq-sdk";
 
 export const askAI = async (query: string) => {
   try {
-
-    // Validate Key
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
       throw new Error("GROQ_API_KEY is missing in .env");
     }
-    console.log("✅ Groq Key Loaded");
-    const groq = new Groq({
-      apiKey,
-    });
 
-    // AI Completion
+    const groq = new Groq({ apiKey });
+
     const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
 
       messages: [
         {
           role: "system",
-
           content: `
 You are an AEO (AI Engine Optimization) analyzer.
 
-Return ONLY valid JSON.
+RULES:
+- Output ONLY valid JSON
+- No markdown
+- No explanation
+- No extra text
+- Ensure JSON is fully valid
 `,
         },
-
         {
           role: "user",
-
           content: `
-Analyze this search query:
+Analyze this query:
 
 "${query}"
 
-Return ONLY valid JSON:
+Return ONLY JSON:
 
 {
-  "visibilityScore": number,
+  "visibilityScore": 0,
   "products": [
     {
-      "name": string,
-      "rank": number,
-      "sentiment": "Positive" | "Neutral" | "Negative",
-      "reason": string
-      "link": string
+      "name": "",
+      "rank": 1,
+      "sentiment": "Positive",
+      "reason": "",
+      "link": ""
     }
   ],
-  "keywords": string[]
+  "keywords": []
 }
 `,
         },
       ],
 
-      temperature: 0.7,
-
-      max_tokens: 1000,
+      temperature: 0.3,
+      max_tokens: 1200,
     });
 
-    // Extract Response
-    const text =
-      completion.choices[0]?.message?.content || "";
+    const text = completion.choices?.[0]?.message?.content;
 
     if (!text) {
       throw new Error("Empty AI response");
     }
 
-    // Clean Markdown
-    const cleanedResponse = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+    console.log("🔵 RAW AI:", text);
 
-    // Parse JSON
-    const parsedResponse = JSON.parse(cleanedResponse);
+    // 🔥 Extract JSON safely (better than regex cleanup)
+    const jsonStart = text.indexOf("{");
+    const jsonEnd = text.lastIndexOf("}");
 
-    return parsedResponse;
-
-  } catch (error: any) {
-
-    console.log("❌ Groq Service Error");
-
-    if (error?.message) {
-      console.log(error.message);
+    if (jsonStart === -1 || jsonEnd === -1) {
+      throw new Error("No JSON found in AI response");
     }
 
-    console.error(error);
+    const jsonString = text.slice(jsonStart, jsonEnd + 1);
 
-    throw new Error("Groq API Failed");
+    let parsed;
+
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (err) {
+      console.error("❌ JSON PARSE FAILED:", jsonString);
+      throw new Error("Invalid JSON from AI");
+    }
+
+    // ✅ Validate structure
+    return {
+      visibilityScore: parsed.visibilityScore ?? 0,
+      products: Array.isArray(parsed.products) ? parsed.products : [],
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+    };
+
+  } catch (error: any) {
+    console.error("❌ Groq Service Error FULL:", error);
+    throw error;
   }
 };
